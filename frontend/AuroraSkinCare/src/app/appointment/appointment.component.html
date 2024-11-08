@@ -60,6 +60,21 @@
           </select>
         </div>
 
+        <div class="flex items-center mb-2 space-x-2">
+          <label
+            class="text-gray-700 text-sm font-bold w-full text-center block"
+          >
+            Registration Fee
+          </label>
+          <select
+            id="registration"
+            [(ngModel)]="registration"
+            class="border rounded-md p-1 mt-4 mb-4"
+          >
+            <option value="500">500 Rs</option>
+          </select>
+        </div>
+
         <!-- Add Appointment Button -->
         <div class="flex items-center justify-center ml-3">
           <button
@@ -73,7 +88,6 @@
       </div>
     </div>
 
-    <!-- Patient Dropdown -->
     <div class="h-10 flex p-3">
       <div class="bg-white p-6 rounded-lg shadow-md w-full flex space-x-7">
         <div class="flex items-center mb-2 space-x-5">
@@ -91,6 +105,52 @@
               {{ patient.name }}
             </option>
           </select>
+          <button
+            (click)="togglePatientForm()"
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-4 rounded focus:outline-none focus:shadow-outline"
+            type="button"
+          >
+            Create
+          </button>
+          <div *ngIf="isPatientFormVisible" class="flex flex-row gap-2">
+            <input
+              type="text"
+              id="nic"
+              [(ngModel)]="nic"
+              placeholder="NIC"
+              class="border rounded-md p-1 mt-4 mb-4"
+            />
+            <input
+              type="text"
+              placeholder="Name"
+              id="name"
+              [(ngModel)]="name"
+              class="border rounded-md p-1 mt-4 mb-4"
+            />
+            <input
+              type="text"
+              placeholder="Email"
+              id="email"
+              [(ngModel)]="email"
+              class="border rounded-md p-1 mt-4 mb-4"
+            />
+            <input
+              type="text"
+              placeholder="Phone"
+              id="phone"
+              [(ngModel)]="phone"
+              class="border rounded-md p-1 mt-4 mb-4"
+            />
+            <div class="flex items-center justify-center ml-3">
+              <button
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-4 rounded focus:outline-none focus:shadow-outline"
+                type="button"
+                (click)="addPatient()"
+              >
+                Add
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -163,6 +223,7 @@
                   <th class="px-4 py-2">Patient Name</th>
                   <th class="px-4 py-2">Date & Time</th>
                   <th class="px-4 py-2">Dermatologist</th>
+                  <th class="px-4 py-2">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -174,6 +235,14 @@
                   </td>
                   <td class="px-4 py-2">
                     {{ appointment.dermatologists?.dermatologistsName }}
+                  </td>
+                  <td class="px-4 py-2">
+                    <button
+                      (click)="editAppointment(appointment)"
+                      class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                    >
+                      Edit
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -202,11 +271,6 @@
             </td>
             <td class="px-4 py-2 space-x-3">
               <button
-                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Edit
-              </button>
-              <button
                 (click)="deleteAppointment(appointment.id)"
                 class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
               >
@@ -218,4 +282,167 @@
       </table>
     </div>
   </div>
+</div>
+
+<div
+  *ngIf="editingAppointmentId"
+  class="p-6 bg-white rounded-lg shadow-md mt-6"
+>
+  <h2 class="text-xl font-bold text-gray-700 mb-4">Edit Appointment</h2>
+  <form (ngSubmit)="updateAppointment()" class="space-y-4">
+    <div class="flex flex-row gap-3">
+      <div>
+        <div class="flex flex-col w-52">
+          <label class="text-gray-700 text-sm font-bold mb-1"
+            >Date and Time:</label
+          >
+          <input
+            type="datetime-local"
+            [(ngModel)]="editingAppointmentData.appointmentDateTime"
+            name="appointmentDateTime"
+            required
+            class="border rounded-md p-2 text-gray-700 focus:outline-none focus:border-yellow-500"
+          />
+        </div>
+
+        <div class="flex flex-col w-52">
+          <label class="text-gray-700 text-sm font-bold mb-1">Patient:</label>
+          <select
+            [(ngModel)]="editingAppointmentData.patient"
+            name="patient"
+            required
+            class="shadow appearance-none border rounded-md p-2 text-gray-700 focus:outline-none focus:border-yellow-500"
+          >
+            <option *ngFor="let patient of PatientArray" [value]="patient">
+              {{ patient.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="flex flex-col w-52">
+          <label class="text-gray-700 text-sm font-bold mb-1"
+            >Dermatologist:</label
+          >
+          <select
+            [(ngModel)]="editingAppointmentData.dermatologists"
+            name="dermatologist"
+            required
+            class="shadow appearance-none border rounded-md p-2 text-gray-700 focus:outline-none focus:border-yellow-500"
+          >
+            <option
+              *ngFor="let dermatologist of DermatologistsArray"
+              [value]="dermatologist"
+            >
+              {{ dermatologist.dermatologistsName }}
+            </option>
+          </select>
+        </div>
+
+        <div class="flex flex-col w-52">
+          <label class="text-gray-700 text-sm font-bold mb-1"
+            >Registration:</label
+          >
+          <input
+            type="text"
+            [(ngModel)]="editingAppointmentData.registration"
+            name="registration"
+            required
+            class="border rounded-md p-2 text-gray-700 focus:outline-none focus:border-yellow-500"
+          />
+        </div>
+      </div>
+      <div>
+        <div class="flex flex-col w-52">
+          <label class="text-gray-700 text-sm font-bold mb-1"
+            >Treatments:</label
+          >
+          <div *ngFor="let treatment of treatmentsArray">
+            <label>
+              <input
+                type="checkbox"
+                [(ngModel)]="treatment.selected"
+                (change)="calculateTotal()"
+                [name]="'treatment_' + treatment.id"
+              />
+              {{ treatment.treatment }} - {{ treatment.price }}Rs
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calculation for Total, Tax, and Registration -->
+      <div>
+        <div class="flex flex-col w-52">
+          <label class="text-gray-700 text-sm font-bold mb-1"
+            >Total Amount:</label
+          >
+          <input
+            type="text"
+            [value]="totalAmount"
+            disabled
+            class="border rounded-md p-2 text-gray-700"
+          />
+        </div>
+
+        <div class="flex flex-col w-52">
+          <label class="text-gray-700 text-sm font-bold mb-1"
+            >Tax (2.5%):</label
+          >
+          <input
+            type="text"
+            [value]="taxAmount"
+            disabled
+            class="border rounded-md p-2 text-gray-700"
+          />
+        </div>
+
+        <div class="flex flex-col w-52">
+          <label class="text-gray-700 text-sm font-bold mb-1"
+            >Registration Fee:</label
+          >
+          <input
+            type="text"
+            [value]="registrationFee"
+            disabled
+            class="border rounded-md p-2 text-gray-700"
+          />
+        </div>
+
+        <div class="flex flex-col w-52">
+          <label class="text-gray-700 text-sm font-bold mb-1"
+            >Grand Total:</label
+          >
+          <input
+            type="text"
+            [value]="grandTotal"
+            disabled
+            class="border rounded-md p-2 text-gray-700"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="flex space-x-4 mt-4">
+      <button
+        type="submit"
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+      >
+        Update Appointment
+      </button>
+      <button
+        type="button"
+        (click)="generateInvoice()"
+        class="bg-blue-500 text-white px-4 py-2 rounded-md mt-4"
+      >
+        Generate Invoice
+      </button>
+      <button
+        type="button"
+        (click)="resetEditForm()"
+        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+      >
+        Cancel
+      </button>
+    </div>
+  </form>
 </div>

@@ -13,6 +13,7 @@ public class Appointment {
 
     private Long id;
     private String appointmentDateTime;
+    private String registration;
     @ManyToOne
     private Patient patient;
     @ManyToOne
@@ -49,6 +50,14 @@ public class Appointment {
 
     public void setDermatologists(Dermatologists dermatologists) {
         this.dermatologists = dermatologists;
+    }
+
+    public String getRegistration() {
+        return registration;
+    }
+
+    public void setRegistration(String registration) {
+        this.registration = registration;
     }
 
     

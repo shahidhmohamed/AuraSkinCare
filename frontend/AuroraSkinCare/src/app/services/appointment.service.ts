@@ -16,11 +16,19 @@ export class AppointmentService {
     return this.http.get<string[]>(`${this.baseUrl}/timeslots`);
   }
 
+  getTreatments(): Observable<string[]> {
+    return this.http.get<string[]>(`http://localhost:8080/api/treatments`);
+  }
+
   searchAppointments(name: string, id: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/search?name=${name}&id=${id}`);
   }
 
   filterAppointments(date: string): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/filter?date=${date}`);
+  }
+
+  updateAppointment(id: number, appointmentData: any): Observable<any> {
+    return this.http.put<any>(`${this.baseUrl}/${id}`, appointmentData);
   }
 }

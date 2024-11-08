@@ -31,6 +31,28 @@ export class AppointmentComponent implements OnInit {
   searchId: number | null = null;
   searchResults: any[] = [];
 
+  nic: string = '';
+  name: string = '';
+  email: string = '';
+  phone: string = '';
+
+  registration: string = '';
+
+  editingAppointmentId: number | null = null;
+  editingAppointmentData: any = {
+    appointmentDateTime: '',
+    patient: '',
+    dermatologists: null,
+    registration: '',
+  };
+
+  treatmentsArray: any[] = [];
+
+  totalAmount: number = 0;
+  taxAmount: number = 0;
+  registrationFee: number = 500; // Fixed registration fee
+  grandTotal: number = 0;
+
   constructor(
     private appointmentService: AppointmentService,
     private http: HttpClient
@@ -42,6 +64,7 @@ export class AppointmentComponent implements OnInit {
     this.loadTimeSlots();
     this.loadPatient();
     this.loadDermatologists();
+    this.loadTreatments();
   }
 
   searchAppointments() {
@@ -60,6 +83,66 @@ export class AppointmentComponent implements OnInit {
       });
   }
 
+  editAppointment(appointment: {
+    id: number | null;
+    appointmentDateTime: any;
+    patient: { id: any };
+    dermatologists: { dermatologistsID: any };
+    registration: any;
+  }) {
+    this.editingAppointmentId = appointment.id;
+    this.editingAppointmentData = {
+      appointmentDateTime: appointment.appointmentDateTime,
+      patient: appointment.patient,
+      dermatologists: appointment.dermatologists,
+      registration: appointment.registration,
+    };
+  }
+
+  updateAppointment(): void {
+    if (this.editingAppointmentId) {
+      this.editingAppointmentData.treatments = this.treatmentsArray.filter(
+        (treatment) => treatment.selected
+      );
+
+      this.appointmentService
+        .updateAppointment(
+          this.editingAppointmentId,
+          this.editingAppointmentData
+        )
+        .subscribe(
+          (resultData) => {
+            console.log(resultData);
+            alert('Appointment updated successfully');
+            this.getAllAppointments();
+            this.resetEditForm();
+          },
+          (error) => {
+            console.error('Error updating appointment:', error);
+            alert('Failed to update appointment');
+          }
+        );
+    } else {
+      alert('No appointment selected for editing.');
+    }
+  }
+
+  resetEditForm(): void {
+    this.editingAppointmentId = null;
+    this.editingAppointmentData = {
+      appointmentDateTime: '',
+      patient: '',
+      dermatologists: null,
+      registration: '',
+      treatments: [],
+    };
+    // Reset treatment selections
+    this.treatmentsArray.forEach((treatment) => {
+      treatment.selected = false;
+    });
+    this.calculateTotal(); // Reset calculation when form is reset
+  }
+
   loadPatient(): void {
     this.http
       .get<any[]>('http://localhost:8080/api/patients')
@@ -74,6 +157,35 @@ export class AppointmentComponent implements OnInit {
       .subscribe((data) => {
         this.DermatologistsArray = data;
       });
+  }
+
+  loadTreatments() {
+    this.appointmentService.getTreatments().subscribe((data) => {
+      this.treatmentsArray = data.map((treatment: any) => ({
+        ...treatment,
+        selected: false,
+      }));
+    });
+  }
+
+  calculateTotal() {
+    // Reset totals before calculation
+    this.totalAmount = 0;
+    this.taxAmount = 0;
+    this.grandTotal = 0;
+
+    // Calculate total amount from selected treatments
+    this.treatmentsArray.forEach((treatment) => {
+      if (treatment.selected) {
+        this.totalAmount += treatment.price;
+      }
+    });
+
+    // Add 2.5% tax
+    this.taxAmount = this.totalAmount * 0.025;
+
+    // Add registration fee
+    this.grandTotal = this.totalAmount + this.taxAmount + this.registrationFee;
   }
 
   loadTimeSlots() {
@@ -93,6 +205,7 @@ export class AppointmentComponent implements OnInit {
     );
   }
 
+  // Triggered when date is changed, updates available time slots and Hide Booked Slots
   onDateChange(event: any) {
     const date = new Date(event.target.value);
     const options = { weekday: 'long' } as const;
@@ -120,6 +233,41 @@ export class AppointmentComponent implements OnInit {
     );
   }
 
+  togglePatientForm(): void {
+    this.isPatientFormVisible = !this.isPatientFormVisible;
+  }
+  isPatientFormVisible: boolean = false;
+
+  addPatient(): void {
+    const bodyData = {
+      nic: this.nic,
+      name: this.name,
+      email: this.email,
+      phone: this.phone,
+    };
+    this.http.post('http://localhost:8080/api/patients', bodyData).subscribe(
+      (resultData) => {
+        console.log(resultData);
+        alert('Patient added successfully');
+        this.resetPatientForm();
+        this.isPatientFormVisible = false;
+        this.loadPatient();
+      },
+      (error) => {
+        console.error('Error adding patient:', error);
+        alert('Failed to add patient');
+      }
+    );
+  }
+
+  resetPatientForm(): void {
+    this.nic = '';
+    this.name = '';
+    this.email = '';
+    this.phone = '';
+  }
+
+  // Add Appointment
   addAppointment(): void {
     if (this.dayOfWeek && this.selectedTimeSlots[this.dayOfWeek]) {
       const selectedTime = this.selectedTimeSlots[this.dayOfWeek];
@@ -129,6 +277,7 @@ export class AppointmentComponent implements OnInit {
         appointmentDateTime: appointmentDateTime,
         patient: this.selectedPatient,
         dermatologists: this.selectedDermatologist,
+        registration: this.registration,
       };
 
       this.http
@@ -178,6 +327,9 @@ export class AppointmentComponent implements OnInit {
     this.selectedDate = '';
     this.dayOfWeek = undefined;
     this.selectedTimeSlots = {};
+    this.registration = '';
+    this.selectedDermatologist = null;
+    this.selectedPatient = '';
   }
 
   resetFilters() {
@@ -186,5 +338,41 @@ export class AppointmentComponent implements OnInit {
     this.searchName = '';
     this.searchId = null;
     this.searchResults = [];
+  }
+
+  generateInvoice(): void {
+    const treatmentDetails = this.treatmentsArray
+      .filter((treatment) => treatment.selected)
+      .map((treatment) => ({
+        treatment: treatment.treatment,
+        price: treatment.price,
+      }));
+
+    const invoice = {
+      patientName: this.editingAppointmentData.patient.name,
+      dermatologistName:
+        this.editingAppointmentData.dermatologists.dermatologistsName,
+      treatments: treatmentDetails,
+      totalAmount: this.totalAmount,
+      taxAmount: this.taxAmount,
+      registrationFee: this.registrationFee,
+      grandTotal: this.grandTotal,
+    };
+
+    // Display the invoice in the console or show a modal with the invoice details
+    console.log('Invoice Details:', invoice);
+    alert(`
+      Invoice for ${invoice.patientName} - ${invoice.dermatologistName}:
+      \nTreatments: 
+      ${invoice.treatments
+        .map((t) => `${t.treatment}: ${t.price}Rs`)
+        .join('\n')}
+      \nTotal Amount: ${invoice.totalAmount} Rs
+      Tax Amount (2.5%): ${invoice.taxAmount} Rs
+      Registration Fee: ${invoice.registrationFee} Rs
+      \nGrand Total: ${invoice.grandTotal} Rs
+    `);
+
+    // Optionally, you can send this invoice to a server or save it as a PDF
   }
 }
